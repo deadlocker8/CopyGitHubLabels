@@ -13,7 +13,7 @@ import org.eclipse.egit.github.core.service.LabelService;
 public class Main
 {
 	public static void main(String[] args)
-	{
+	{		
 		System.out.println("CopyGitHubLabels");
 		System.out.println("=================");
 		System.out.println("");
@@ -61,7 +61,7 @@ public class Main
 		}		
 
 		GitHubClient sourceClient = new GitHubClient();
-		sourceClient.setCredentials(sourceUsername, password);		
+		sourceClient.setCredentials(sourceUsername, password);			
 
 		LabelService labelService = new LabelService();
 		ArrayList<Label> labels = new ArrayList<>();
@@ -94,23 +94,23 @@ public class Main
 				}
 			}		
 			
-			password = "";
+			String destinationPassword = "";
 			if(!destinationPublic)
 			{
 				try
 				{
 					Console console = System.console();
-					password = new String(console.readPassword("Please enter the password for the destination repo: "));
+					destinationPassword = new String(console.readPassword("Please enter the password for the destination repo: "));
 				}
 				catch(NullPointerException e)
 				{
 					System.out.print("Please enter the password for the destination repo: ");
-					password = scanner.nextLine();
+					destinationPassword = scanner.nextLine();
 				}
 			}	
 			
 			GitHubClient destinationClient = new GitHubClient();
-			destinationClient.setCredentials(destinationUsername, password);
+			destinationClient.setCredentials(destinationUsername, destinationPassword);
 			
 			System.out.println("");
 			System.out.println("_________________________________________________________________________________________________________________");
@@ -156,6 +156,7 @@ public class Main
 			}
 			catch(IOException e)
 			{
+				e.printStackTrace();
 				System.err.println("An error occurred while inserting the labels into the destination repo!");
 			}
 
@@ -163,7 +164,14 @@ public class Main
 		}
 		catch(IOException e1)
 		{
-			System.err.println("An error occurred while getting the labels from the source repo!\nCheck your credentials and make sure that you have access to the source repo (if it's not public)");
+			if(e1.getMessage().contains("rate limit"))
+			{
+				System.err.println("You have reached the API-Limit for unauthorized requests. Try again later or authenticate with password.");
+			}
+			else
+			{
+				System.err.println("An error occurred while getting the labels from the source repo!\nCheck your credentials and make sure that you have access to the source repo (if it's not public)");
+			}
 		}	
 		
 		scanner.close();
@@ -182,12 +190,12 @@ public class Main
 		{
 			try
 			{
-				System.out.println("Deleting " + i + "/" + existingLabels.size() + ": " + existingLabels.get(i).getName());
+				System.out.println("Deleting " + i+1 + "/" + existingLabels.size() + ": " + existingLabels.get(i).getName());
 				labelService.deleteLabel(client.getUser(), repoName, existingLabels.get(i).getName().replace(" ", "%20"));
 			}
 			catch(Exception e)
 			{
-				e.printStackTrace();
+				System.out.println("[ERROR] Label can't be deleted.");
 			}
 		}
 		System.out.println(">>> [Deleting finished]");
@@ -196,7 +204,7 @@ public class Main
 
 	public static void insertLabels(GitHubClient client, String repoName, ArrayList<Label> labels) throws IOException
 	{
-		LabelService labelService = new LabelService(client);
+		LabelService labelService = new LabelService(client);		
 
 		System.out.println("");
 		System.out.println(">>> [Inserting started]");
@@ -205,11 +213,11 @@ public class Main
 		{
 			try
 			{
-				System.out.println("Inserting " + i + "/" + labels.size() + ": " + labels.get(i).getName());
-				labelService.createLabel(client.getUser(), "test", labels.get(i));
+				System.out.println("Inserting " + i+1 + "/" + labels.size() + ": " + labels.get(i).getName());
+				labelService.createLabel(client.getUser(), repoName, labels.get(i));
 			}
 			catch(RequestException e)
-			{
+			{			
 				System.out.println("[ERROR] Label already exists. Label will be skipped.");
 			}
 		}
