@@ -63,7 +63,7 @@ public class Main
 		GitHubClient sourceClient = new GitHubClient();
 		sourceClient.setCredentials(sourceUsername, password);			
 
-		LabelService labelService = new LabelService();
+		LabelService labelService = new LabelService(sourceClient);
 		ArrayList<Label> labels = new ArrayList<>();
 		try
 		{
@@ -73,41 +73,19 @@ public class Main
 			String destinationUsername = scanner.nextLine();		
 			
 			System.out.print("Enter the name of destination repo: ");
-			String destRepoName = scanner.nextLine();
+			String destRepoName = scanner.nextLine();			
 			
-			System.out.print("Is this a public repo? [Y/N] ");		
-			boolean destinationPublicCorrect = false;
-			boolean destinationPublic = false;
-			while(!destinationPublicCorrect)
+			String destinationPassword = "";			
+			try
 			{
-				String isSourcePublic = scanner.nextLine();
-				switch(isSourcePublic.toLowerCase())
-				{
-					case "y": 	destinationPublic = true;
-								destinationPublicCorrect = true;
-								break;
-					case "n": 	destinationPublic = false;
-								destinationPublicCorrect = true;
-								break;
-					default:	System.out.print("Please answer Yes or No");
-								break;
-				}
-			}		
-			
-			String destinationPassword = "";
-			if(!destinationPublic)
+				Console console = System.console();
+				destinationPassword = new String(console.readPassword("Please enter the password for the destination repo: "));
+			}
+			catch(NullPointerException e)
 			{
-				try
-				{
-					Console console = System.console();
-					destinationPassword = new String(console.readPassword("Please enter the password for the destination repo: "));
-				}
-				catch(NullPointerException e)
-				{
-					System.out.print("Please enter the password for the destination repo: ");
-					destinationPassword = scanner.nextLine();
-				}
-			}	
+				System.out.print("Please enter the password for the destination repo: ");
+				destinationPassword = scanner.nextLine();
+			}			
 			
 			GitHubClient destinationClient = new GitHubClient();
 			destinationClient.setCredentials(destinationUsername, destinationPassword);
@@ -190,11 +168,12 @@ public class Main
 		{
 			try
 			{
-				System.out.println("Deleting " + i+1 + "/" + existingLabels.size() + ": " + existingLabels.get(i).getName());
+				System.out.println("Deleting " + (i+1) + "/" + existingLabels.size() + ": " + existingLabels.get(i).getName());
 				labelService.deleteLabel(client.getUser(), repoName, existingLabels.get(i).getName().replace(" ", "%20"));
 			}
 			catch(Exception e)
 			{
+				e.printStackTrace();
 				System.out.println("[ERROR] Label can't be deleted.");
 			}
 		}
@@ -213,7 +192,7 @@ public class Main
 		{
 			try
 			{
-				System.out.println("Inserting " + i+1 + "/" + labels.size() + ": " + labels.get(i).getName());
+				System.out.println("Inserting " + (i+1) + "/" + labels.size() + ": " + labels.get(i).getName());
 				labelService.createLabel(client.getUser(), repoName, labels.get(i));
 			}
 			catch(RequestException e)
